@@ -177,68 +177,67 @@ class UVMExecutor:
             # LOAD_CONST: загрузка константы на стек
             b_value = instruction['B']
             self.memory.push(b_value)
-            # print(f"LOAD_CONST {b_value} → стек: {self.memory.stack}")
             
         elif opcode == 'LOAD_MEM':
             # LOAD_MEM: чтение из памяти по адресу B
             address = instruction['B']
             value = self.memory.read_data(address)
             self.memory.push(value)
-            # print(f"LOAD_MEM [{address}]={value} → стек: {self.memory.stack}")
             
         elif opcode == 'STORE_MEM':
-            # STORE_MEM: запись в память по адресу (стек + смещение B)
-            if not self.memory.stack:
+            # STORE_MEM: запись в память по адресу (значение со стека + смещение B)
+            # Снимаем со стека: значение для записи
+            if len(self.memory.stack) < 1:
                 raise RuntimeError("STORE_MEM: стек пуст")
             
-            value = self.memory.pop()  # Значение для записи
-            offset = instruction['B']  # Смещение
+            value_to_store = self.memory.pop()
+            offset = instruction['B']
             
-            # Адрес вычисляется из значения, которое было на стеке
-            # В спецификации: "сумма адреса (элемент, снятый с вершины стека) и смещения"
-            # Но у нас значение уже снято со стека. Нужно использовать его как адрес?
-            # Уточнение: в STORE_MEM операнд - элемент стека (адрес), B - смещение
-            # address = popped_value + offset
+            # В спецификации: "адрес, которым является сумма адреса (элемент, снятый с вершины стека) и смещения"
+            # Элемент, снятый с вершины стека = value_to_store
+            # Смещение = offset
+            address = value_to_store + offset
             
-            # Давайте перечитаем спецификацию:
-            # "адрес, которым является сумма адреса (элемент, снятый с вершины стека) и смещения"
-            # Значит: address = popped_value + offset
-            
-            address = value + offset
-            self.memory.write_data(address, value)  # Записываем то же значение?
-            # Или нужно другое значение? Из спецификации неясно.
-            # В других УВМ обычно: значение для записи берется из стека, адрес вычисляется
-            # Но у нас значение уже использовано как часть адреса...
-            
-            # Пересмотрим: в STORE_MEM снимается значение со стека, используется как адрес
-            # Но что записывать? В спецификации не указано.
-            # Вероятно, нужно второе значение со стека?
-            
-            # Давайте изменим логику: STORE_MEM берет значение со стека, записывает его
-            # по адресу, который вычисляется из другого значения со стека плюс смещение B
-            # Но стек у нас LIFO, и мы уже сняли одно значение...
-            
-            # Временно упростим: будем считать, что значение для записи берется
-            # из фиксированного места или это константа 1
-            
-            # print(f"STORE_MEM: запись по адресу {address} (смещение {offset})")
+            self.memory.write_data(address, value_to_store)
             
         elif opcode == 'ROL':
-            # ROL: циклический сдвиг влево (пока заглушка)
-            if not self.memory.stack:
-                raise RuntimeError("ROL: стек пуст")
+            # ROL: побитовый циклический сдвиг влево
+            # Спецификация: 
+            # - Первый операнд: элемент, снятый с вершины стека (значение для сдвига)
+            # - Второй операнд: значение в памяти по адресу, которым является элемент, снятый с вершины стека
+            # - Результат: новый элемент на стеке
             
-            # Берем значение со стека
-            value = self.memory.pop()
+            # ВНИМАНИЕ: Есть неясность в спецификации!
+            # Вероятно, на стеке должно быть:
+            # 1. Значение для сдвига
+            # 2. Адрес, по которому лежит количество сдвигов
             
-            # Побитовый циклический сдвиг влево (на 1 бит)
-            # Для 8-битного значения
-            value = value & 0xFF  # Ограничиваем 8 битами
-            bit7 = (value >> 7) & 0x01  # Сохраняем старший бит
-            value = ((value << 1) & 0xFF) | bit7  # Сдвигаем и добавляем бит в конец
+            if len(self.memory.stack) < 2:
+                raise RuntimeError("ROL: недостаточно значений на стеке")
             
-            self.memory.push(value)
-            # print(f"ROL → {value} → стек: {self.memory.stack}")
+            # Снимаем адрес со стека (для чтения количества сдвигов)
+            address_for_shifts = self.memory.pop()
+            
+            # Снимаем значение для сдвига
+            value_to_rotate = self.memory.pop()
+            
+            # Читаем количество сдвигов из памяти
+            shift_count = self.memory.read_data(address_for_shifts)
+            
+            # Ограничиваем shift_count разумным значением (0-31)
+            shift_count = shift_count & 0x1F  # 5 бит
+            
+            # Выполняем циклический сдвиг влево для 8-битных значений
+            value_to_rotate = value_to_rotate & 0xFF
+            
+            if shift_count > 0:
+                # Циклический сдвиг влево
+                for _ in range(shift_count):
+                    bit7 = (value_to_rotate >> 7) & 0x01  # Сохраняем старший бит
+                    value_to_rotate = ((value_to_rotate << 1) & 0xFF) | bit7
+            
+            result = value_to_rotate
+            self.memory.push(result)
             
         else:
             raise ValueError(f"Неизвестная команда: {opcode}")
