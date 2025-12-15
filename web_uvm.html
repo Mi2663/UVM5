@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>УВМ (Вариант 5) - Web версия</title>
+    
+    <!-- PyScript -->
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(90deg, #4f6d9e 0%, #2c3e50 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab:hover {
+            background: #e9e9e9;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom-color: #4f6d9e;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .editor-container {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #4f6d9e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #3a5179;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        button.primary {
+            background: #27ae60;
+        }
+        
+        button.primary:hover {
+            background: #219653;
+        }
+        
+        .output-container {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+        
+        .memory-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100px;
+        }
+        
+        .memory-dump {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre;
+        }
+        
+        .status-bar {
+            background: #f5f5f5;
+            padding: 10px 30px;
+            border-top: 1px solid #ddd;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .help-content {
+            line-height: 1.6;
+        }
+        
+        .help-content h3 {
+            color: #2c3e50;
+            margin: 20px 0 10px 0;
+        }
+        
+        .help-content code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .help-content pre {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                width: 100%;
+                text-align: left;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>УВМ (Учебная Виртуальная Машина) - Вариант 5</h1>
+            <div class="subtitle">Web версия - работает в браузере через PyScript/WASM</div>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('program')">Программа</button>
+            <button class="tab" onclick="switchTab('output')">Память и вывод</button>
+            <button class="tab" onclick="switchTab('help')">Справка</button>
+        </div>
+        
+        <div id="program" class="tab-content active">
+            <div class="editor-container">
+                <textarea id="codeEditor" placeholder="Введите программу на ассемблере УВМ...">
+; Пример программы для УВМ (Вариант 5)
+; Web версия
+
+LOAD_CONST 100   ; Загрузка константы
+STORE_MEM 0      ; Сохранение в память
+LOAD_MEM 133     ; Чтение из памяти (тестовое значение)
+ROL             ; Циклический сдвиг
+                </textarea>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="loadExample()">Загрузить пример</button>
+                <button onclick="clearEditor()">Очистить</button>
+                <button onclick="assembleProgram()">Ассемблировать</button>
+                <button class="primary" onclick="runProgram()">Выполнить</button>
+                <button class="primary" onclick="assembleAndRun()">Ассемблировать и выполнить</button>
+            </div>
+        </div>
+        
+        <div id="output" class="tab-content">
+            <div class="output-container" id="outputText">
+                Вывод появится здесь после выполнения программы...
+            </div>
+            
+            <div class="memory-controls">
+                <span>Диапазон памяти:</span>
+                <input type="number" id="startAddr" value="0" min="0" max="65535">
+                <span>до</span>
+                <input type="number" id="endAddr" value="200" min="0" max="65535">
+                <button onclick="refreshMemory()">Обновить</button>
+                <button onclick="saveMemoryDump()">Сохранить дамп</button>
+            </div>
+            
+            <div class="memory-dump" id="memoryDump">
+                Дамп памяти появится здесь после выполнения программы...
+            </div>
+        </div>
+        
+        <div id="help" class="tab-content">
+            <div class="help-content">
+                <h3>Доступные команды УВМ (Вариант 5):</h3>
+                
+                <h4>1. LOAD_CONST &lt;value&gt;</h4>
+                <p>Загрузка константы на стек. Диапазон: 0-1023.</p>
+                <pre>LOAD_CONST 100   ; Загружает число 100 на стек</pre>
+                
+                <h4>2. LOAD_MEM &lt;address&gt;</h4>
+                <p>Чтение значения из памяти по указанному адресу. Диапазон адресов: 0-16777215.</p>
+                <pre>LOAD_MEM 500     ; Читает значение из MEM[500]</pre>
+                
+                <h4>3. STORE_MEM &lt;offset&gt;</h4>
+                <p>Запись значения в память. Адрес вычисляется как (значение со стека + смещение). Диапазон смещения: -4096..4095.</p>
+                <pre>STORE_MEM 10     ; Записывает по адресу (стек + 10)</pre>
+                
+                <h4>4. ROL</h4>
+                <p>Побитовый циклический сдвиг влево. Берет значение и адрес со стека, выполняет сдвиг.</p>
+                <pre>ROL             ; Циклический сдвиг влево</pre>
+                
+                <h3>Пример программы:</h3>
+                <pre>
+; Тестовая программа
+LOAD_CONST 343
+LOAD_MEM 365
+STORE_MEM 899
+ROL
+LOAD_CONST 100
+STORE_MEM 0
+                </pre>
+                
+                <h3>Особенности Web версии:</h3>
+                <p>✓ Работает полностью в браузере</p>
+                <p>✓ Не требует установки Python</p>
+                <p>✓ Кроссплатформенная (Windows, Linux, macOS, Android, iOS)</p>
+                <p>✓ Сохраняет дамп памяти в JSON формате</p>
+            </div>
+        </div>
+        
+        <div class="status-bar" id="statusBar">
+            Готово к работе...
+        </div>
+    </div>
+    
+    <py-script>
+import asyncio
+import json
+from js import console, document, URL, Blob
+from pyodide.ffi import create_proxy
+
+# Имитация модулей УВМ для Web-версии
+class UVMMemory:
+    def __init__(self):
+        self.data = [0] * 65536
+        self.code = bytearray()
+        self.stack = []
+        self.pc = 0
+        self._init_test_data()
+    
+    def _init_test_data(self):
+        self.write_data(133, 42)
+        self.write_data(500, 25)
+        self.write_data(501, 100)
+        self.write_data(502, 225)
+        self.write_data(520, 100)
+    
+    def load_code(self, binary_data):
+        self.code = bytearray(binary_data)
+    
+    def read_code(self, address):
+        if 0 <= address < len(self.code):
+            return self.code[address]
+        raise IndexError(f"Адрес вне диапазона: {address}")
+    
+    def read_data(self, address):
+        if 0 <= address < len(self.data):
+            return self.data[address]
+        raise IndexError(f"Адрес вне диапазона: {address}")
+    
+    def write_data(self, address, value):
+        if 0 <= address < len(self.data):
+            if 0 <= value <= 255:
+                self.data[address] = value
+            else:
+                raise ValueError(f"Значение вне диапазона: {value}")
+        else:
+            raise IndexError(f"Адрес вне диапазона: {address}")
+    
+    def push(self, value):
+        self.stack.append(value)
+    
+    def pop(self):
+        if self.stack:
+            return self.stack.pop()
+        raise IndexError("Стек пуст")
+
+class UVMDecoder:
+    @staticmethod
+    def decode_instruction(memory):
+        if memory.pc >= len(memory.code):
+            return None
+        
+        byte1 = memory.read_code(memory.pc)
+        a_value = (byte1 >> 5) & 0x07
+        
+        if a_value == 4:  # ROL
+            instr = {'A': a_value, 'B': None, 'size': 1, 'opcode': 'ROL'}
+            memory.pc += 1
+        
+        elif a_value == 2:  # LOAD_CONST
+            if memory.pc + 1 >= len(memory.code):
+                raise ValueError("Недостаточно данных")
+            
+            byte2 = memory.read_code(memory.pc + 1)
+            b_value = ((byte1 & 0x1F) << 5) | (byte2 & 0x1F)
+            
+            instr = {'A': a_value, 'B': b_value, 'size': 2, 'opcode': 'LOAD_CONST'}
+            memory.pc += 2
+        
+        elif a_value == 1:  # STORE_MEM
+            if memory.pc + 1 >= len(memory.code):
+                raise ValueError("Недостаточно данных")
+            
+            byte2 = memory.read_code(memory.pc + 1)
+            b_value = ((byte1 & 0x1F) << 8) | byte2
+            
+            if b_value >= 4096:
+                b_value = b_value - 8192
+            
+            instr = {'A': a_value, 'B': b_value, 'size': 2, 'opcode': 'STORE_MEM'}
+            memory.pc += 2
+        
+        elif a_value == 3:  # LOAD_MEM
+            if memory.pc + 3 >= len(memory.code):
+                raise ValueError("Недостаточно данных")
+            
+            byte2 = memory.read_code(memory.pc + 1)
+            byte3 = memory.read_code(memory.pc + 2)
+            byte4 = memory.read_code(memory.pc + 3)
+            
+            b_value = ((byte1 & 0x1F) << 19) | (byte2 << 11) | (byte3 << 3) | ((byte4 >> 5) & 0x07)
+            
+            instr = {'A': a_value, 'B': b_value, 'size': 4, 'opcode': 'LOAD_MEM'}
+            memory.pc += 4
+        
+        else:
+            raise ValueError(f"Неизвестный код операции: {a_value}")
+        
+        return instr
+
+class UVMExecutor:
+    def __init__(self, memory):
+        self.memory = memory
+        self.running = True
+        self.instruction_count = 0
+    
+    def execute(self, instruction):
+        self.instruction_count += 1
+        opcode = instruction['opcode']
+        
+        if opcode == 'LOAD_CONST':
+            self.memory.push(instruction['B'])
+        
+        elif opcode == 'LOAD_MEM':
+            address = instruction['B']
+            value = self.memory.read_data(address)
+            self.memory.push(value)
+        
+        elif opcode == 'STORE_MEM':
+            if not self.memory.stack:
+                raise RuntimeError("STORE_MEM: стек пуст")
+            
+            value_to_store = self.memory.pop()
+            offset = instruction['B']
+            address = value_to_store + offset
+            
+            self.memory.write_data(address, value_to_store)
+        
+        elif opcode == 'ROL':
+            if len(self.memory.stack) < 2:
+                raise RuntimeError("ROL: недостаточно значений на стеке")
+            
+            address_for_shifts = self.memory.pop()
+            value_to_rotate = self.memory.pop()
+            
+            shift_count = self.memory.read_data(address_for_shifts) & 0x1F
+            value_to_rotate = value_to_rotate & 0xFF
+            
+            if shift_count > 0:
+                for _ in range(shift_count):
+                    bit7 = (value_to_rotate >> 7) & 0x01
+                    value_to_rotate = ((value_to_rotate << 1) & 0xFF) | bit7
+            
+            self.memory.push(value_to_rotate)
+        
+        else:
+            raise ValueError(f"Неизвестная команда: {opcode}")
+    
+    def run(self):
+        decoder = UVMDecoder()
+        
+        while self.running and self.memory.pc < len(self.memory.code):
+            try:
+                instruction = decoder.decode_instruction(self.memory)
+                if instruction is None:
+                    break
+                
+                self.execute(instruction)
+            
+            except Exception as e:
+                console.error(f"Ошибка выполнения: {e}")
+                self.running = False
+                break
+
+# Глобальные переменные
+last_binary = None
+memory_dump = None
+
+def parse_assembly(source):
+    """Упрощенный парсер для Web-версии."""
+    lines = source.strip().split('\n')
+    program = []
+    
+    for line_num, line in enumerate(lines, 1):
+        line = line.strip()
+        
+        if not line or line.startswith(';'):
+            continue
+        
+        if ';' in line:
+            line = line.split(';')[0].strip()
+        
+        parts = line.split()
+        if not parts:
+            continue
+        
+        opcode = parts[0].upper()
+        operand = None
+        
+        if opcode in ['LOAD_CONST', 'LOAD_MEM', 'STORE_MEM']:
+            if len(parts) < 2:
+                raise ValueError(f"Отсутствует операнд в строке {line_num}")
+            try:
+                operand = int(parts[1])
+            except ValueError:
+                raise ValueError(f"Неверный операнд в строке {line_num}")
+        
+        program.append({'opcode': opcode, 'operand': operand, 'line': line_num})
+    
+    return program
+
+def encode_to_intermediate(program):
+    """Кодирование в промежуточное представление."""
+    opcode_to_a = {
+        'LOAD_CONST': 2,
+        'LOAD_MEM': 3,
+        'STORE_MEM': 1,
+        'ROL': 4
+    }
+    
+    intermediate = []
+    
+    for instr in program:
+        opcode = instr['opcode']
+        a_value = opcode_to_a.get(opcode)
+        
+        if a_value is None:
+            raise ValueError(f"Неизвестная команда: {opcode}")
+        
+        if opcode == 'LOAD_CONST':
+            b_value = instr['operand']
+            if b_value is None:
+                raise ValueError("LOAD_CONST требует операнд")
+            if not (0 <= b_value < 1024):
+                raise ValueError(f"Константа вне диапазона: {b_value}")
+            
+            intermediate.append({
+                'A': a_value,
+                'B': b_value,
+                'size': 2,
+                'opcode': opcode
+            })
+        
+        elif opcode == 'LOAD_MEM':
+            b_value = instr['operand']
+            if b_value is None:
+                raise ValueError("LOAD_MEM требует операнд")
+            if not (0 <= b_value < 2**24):
+                raise ValueError(f"Адрес вне диапазона: {b_value}")
+            
+            intermediate.append({
+                'A': a_value,
+                'B': b_value,
+                'size': 4,
+                'opcode': opcode
+            })
+        
+        elif opcode == 'STORE_MEM':
+            b_value = instr['operand']
+            if b_value is None:
+                raise ValueError("STORE_MEM требует операнд")
+            if not (-4096 <= b_value < 4096):
+                raise ValueError(f"Смещение вне диапазона: {b_value}")
+            
+            intermediate.append({
+                'A': a_value,
+                'B': b_value,
+                'size': 2,
+                'opcode': opcode
+            })
+        
+        elif opcode == 'ROL':
+            intermediate.append({
+                'A': a_value,
+                'B': None,
+                'size': 1,
+                'opcode': opcode
+            })
+    
+    return intermediate
+
+def encode_to_binary(intermediate):
+    """Кодирование в бинарный формат."""
+    binary = bytearray()
+    
+    for instr in intermediate:
+        a_value = instr['A']
+        b_value = instr.get('B')
+        
+        if instr['opcode'] == 'ROL':
+            binary.append(a_value << 5)
+        
+        elif instr['opcode'] == 'LOAD_CONST':
+            byte1 = (a_value << 5) | ((b_value >> 5) & 0x1F)
+            byte2 = b_value & 0x1F
+            binary.extend([byte1, byte2])
+        
+        elif instr['opcode'] == 'STORE_MEM':
+            if b_value < 0:
+                b_value = b_value + 8192
+            
+            byte1 = (a_value << 5) | ((b_value >> 8) & 0x1F)
+            byte2 = b_value & 0xFF
+            binary.extend([byte1, byte2])
+        
+        elif instr['opcode'] == 'LOAD_MEM':
+            byte1 = (a_value << 5) | ((b_value >> 19) & 0x1F)
+            byte2 = (b_value >> 11) & 0xFF
+            byte3 = (b_value >> 3) & 0xFF
+            byte4 = (b_value & 0x07) << 5
+            binary.extend([byte1, byte2, byte3, byte4])
+    
+    return bytes(binary)
+
+def create_memory_dump(memory, start_addr, end_addr):
+    """Создание дампа памяти."""
+    dump = {
+        'metadata': {
+            'start_address': start_addr,
+            'end_address': end_addr,
+            'total_memory_size': len(memory.data),
+            'stack_size': len(memory.stack)
+        },
+        'memory': {},
+        'stack': memory.stack.copy()
+    }
+    
+    for addr in range(start_addr, min(end_addr + 1, len(memory.data))):
+        value = memory.data[addr]
+        if value != 0:
+            dump['memory'][str(addr)] = value
+    
+    return dump
+
+# Функции для взаимодействия с интерфейсом
+def update_status(message):
+    document.getElementById("statusBar").innerText = message
+    console.log(f"Status: {message}")
+
+def update_output(text):
+    output_elem = document.getElementById("outputText")
+    output_elem.innerHTML = text.replace('\n', '<br>').replace(' ', '&nbsp;')
+
+def update_memory_dump(text):
+    memory_elem = document.getElementById("memoryDump")
+    memory_elem.innerHTML = text.replace('\n', '<br>').replace(' ', '&nbsp;')
+
+async def loadExample():
+    example_code = """; Пример программы для УВМ (Вариант 5)
+; Web версия
+
+LOAD_CONST 343   ; Тест из спецификации
+LOAD_MEM   365   ; Тест из спецификации
+STORE_MEM  899   ; Тест из спецификации
+ROL             ; Тест из спецификации
+
+; Дополнительные операции
+LOAD_CONST 100
+STORE_MEM 0
+LOAD_MEM 133"""
+    
+    document.getElementById("codeEditor").value = example_code
+    update_status("Загружен пример программы")
+
+async def clearEditor():
+    document.getElementById("codeEditor").value = ""
+    update_status("Редактор очищен")
+
+async def assembleProgram():
+    global last_binary
+    
+    try:
+        source = document.getElementById("codeEditor").value
+        update_status("Ассемблирование...")
+        
+        program = parse_assembly(source)
+        intermediate = encode_to_intermediate(program)
+        binary = encode_to_binary(intermediate)
+        
+        last_binary = binary
+        
+        output = "=== РЕЗУЛЬТАТ АССЕМБЛИРОВАНИЯ ===\n\n"
+        output += f"Инструкций найдено: {len(program)}\n"
+        output += f"Размер бинарного кода: {len(binary)} байт\n\n"
+        
+        output += "Промежуточное представление:\n"
+        for i, instr in enumerate(intermediate):
+            output += f"  [{i}] {instr['opcode']}: A={instr['A']}, B={instr.get('B', 'N/A')}\n"
+        
+        output += "\nБинарный код (hex):\n"
+        hex_str = ' '.join(f'{b:02X}' for b in binary)
+        output += f"  {hex_str}\n"
+        
+        update_output(output)
+        update_status(f"Программа ассемблирована ({len(program)} инструкций)")
+        
+        # Переключаем на вкладку вывода
+        switchTab('output')
+        
+        return binary
+        
+    except Exception as e:
+        update_output(f"ОШИБКА АССЕМБЛИРОВАНИЯ:\n{str(e)}")
+        update_status("Ошибка ассемблирования")
+        return None
+
+async def runProgram():
+    global last_binary, memory_dump
+    
+    if last_binary is None:
+        update_output("Сначала ассемблируйте программу!")
+        update_status("Ошибка: программа не ассемблирована")
+        return
+    
+    try:
+        update_status("Выполнение программы...")
+        
+        memory = UVMMemory()
+        memory.load_code(last_binary)
+        
+        executor = UVMExecutor(memory)
+        executor.run()
+        
+        output_elem = document.getElementById("outputText")
+        current_output = output_elem.innerHTML.replace('<br>', '\n').replace('&nbsp;', ' ')
+        
+        output = current_output + "\n\n=== ВЫПОЛНЕНИЕ ПРОГРАММЫ ===\n"
+        output += f"Выполнено инструкций: {executor.instruction_count}\n"
+        output += f"Размер стека: {len(memory.stack)}\n"
+        
+        if memory.stack:
+            output += f"Состояние стека: {memory.stack}\n"
+        
+        update_output(output)
+        
+        # Создаем дамп памяти
+        start_addr = int(document.getElementById("startAddr").value)
+        end_addr = int(document.getElementById("endAddr").value)
+        memory_dump = create_memory_dump(memory, start_addr, end_addr)
+        
+        # Обновляем дамп памяти
+        refreshMemory()
+        
+        update_status(f"Программа выполнена ({executor.instruction_count} инструкций)")
+        
+    except Exception as e:
+        update_output(f"ОШИБКА ВЫПОЛНЕНИЯ:\n{str(e)}")
+        update_status("Ошибка выполнения")
+
+async def assembleAndRun():
+    await assembleProgram()
+    await runProgram()
+
+def refreshMemory():
+    global memory_dump
+    
+    if memory_dump is None:
+        update_memory_dump("Память не загружена.\nЗапустите программу для получения дампа памяти.")
+        return
+    
+    try:
+        start_addr = int(document.getElementById("startAddr").value)
+        end_addr = int(document.getElementById("endAddr").value)
+        
+        memory = memory_dump.get('memory', {})
+        output = f"Дамп памяти с адреса {start_addr} по {end_addr}:\n"
+        output += "=" * 50 + "\n"
+        
+        if not memory:
+            output += "Нет ненулевых значений в указанном диапазоне.\n"
+        else:
+            sorted_addrs = sorted(memory.keys(), key=lambda x: int(x))
+            
+            for addr in sorted_addrs:
+                addr_int = int(addr)
+                if start_addr <= addr_int <= end_addr:
+                    value = memory[addr]
+                    output += f"MEM[{addr:>4}] = {value:>3} (0x{value:02X})\n"
+        
+        stack = memory_dump.get('stack', [])
+        if stack:
+            output += f"\nСтек: {stack}\n"
+            output += f"Размер стека: {len(stack)}\n"
+        
+        update_memory_dump(output)
+        
+    except Exception as e:
+        update_memory_dump(f"Ошибка обновления дампа: {str(e)}")
+
+async def saveMemoryDump():
+    global memory_dump
+    
+    if memory_dump is None:
+        update_status("Нет данных дампа памяти для сохранения")
+        return
+    
+    try:
+        # Создаем JSON строку
+        json_str = json.dumps(memory_dump, indent=2, ensure_ascii=False)
+        
+        # Создаем Blob и скачиваем файл
+        blob = Blob.new([json_str], {type: "application/json"})
+        url = URL.createObjectURL(blob)
+        
+        # Создаем временную ссылку для скачивания
+        link = document.createElement("a")
+        link.href = url
+        link.download = "memory_dump.json"
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        URL.revokeObjectURL(url)
+        
+        update_status("Дамп памяти сохранен как memory_dump.json")
+        
+    except Exception as e:
+        update_status(f"Ошибка сохранения дампа: {str(e)}")
+
+# Инициализация
+update_status("Web УВМ готов к работе!")
+    </py-script>
+    
+    <script>
+        function switchTab(tabName) {
+            // Скрыть все вкладки
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Убрать активный класс со всех кнопок вкладок
+            document.querySelectorAll('.tab').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Показать выбранную вкладку
+            document.getElementById(tabName).classList.add('active');
+            
+            // Активировать соответствующую кнопку
+            event.target.classList.add('active');
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('УВМ Web версия загружена');
+        });
+    </script>
+</body>
+</html>
